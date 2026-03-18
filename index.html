@@ -24,14 +24,32 @@
 
         p.instruction {
             font-size: 1.2rem;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+        }
+
+        /* 遊戲區域（包含輸送帶和結算畫面） */
+        #game-container {
+            width: 100%;
+            max-width: 900px;
+            position: relative;
+        }
+
+        /* 進度條設計 */
+        #progress-board {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 15px;
+            background: #fff;
+            padding: 5px 20px;
+            border-radius: 20px;
+            display: inline-block;
         }
 
         /* 輸送帶背景設計 */
         #conveyor-belt {
             background-color: #34495e;
             width: 100%;
-            max-width: 900px;
             padding: 30px 10px;
             border-radius: 15px;
             box-shadow: inset 0px 5px 15px rgba(0,0,0,0.6);
@@ -40,9 +58,9 @@
             position: relative;
             overflow: hidden;
             border: 5px solid #7f8c8d;
+            box-sizing: border-box;
         }
 
-        /* 輸送帶上的動態條紋，增加視覺效果 */
         #conveyor-belt::before {
             content: "";
             position: absolute;
@@ -67,12 +85,12 @@
         .note-box {
             background-color: rgba(255, 255, 255, 0.9);
             color: #2c3e50;
-            font-size: 2.5rem; /* 音符放大 */
+            font-size: 2.5rem;
             padding: 20px;
             border-radius: 10px;
             border: 4px solid #bdc3c7;
             cursor: pointer;
-            z-index: 1; /* 確保在輸送帶條紋上方 */
+            z-index: 1;
             transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
             user-select: none;
             display: flex;
@@ -90,7 +108,7 @@
             border-color: #3498db;
         }
 
-        /* 答錯時的震動動畫 */
+        /* 動畫效果 */
         .shake {
             animation: shake 0.4s;
             background-color: #e74c3c !important;
@@ -106,7 +124,6 @@
             100% { transform: translateX(0); }
         }
 
-        /* 答對時的動畫 */
         .correct {
             background-color: #2ecc71 !important;
             color: white;
@@ -115,66 +132,117 @@
         }
 
         #message {
-            margin-top: 30px;
+            margin-top: 20px;
             font-size: 1.8rem;
             font-weight: bold;
             height: 40px;
         }
 
-        #score-board {
-            margin-top: 10px;
-            font-size: 1.2rem;
-            color: #bdc3c7;
+        /* 過關結算畫面隱藏/顯示 */
+        #end-screen {
+            display: none; /* 預設隱藏 */
+            background-color: #27ae60;
+            padding: 50px;
+            border-radius: 15px;
+            border: 5px solid #2ecc71;
+            box-shadow: 0px 10px 20px rgba(0,0,0,0.5);
+            animation: popIn 0.5s ease-out;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        #end-screen h2 {
+            font-size: 3rem;
+            margin: 0 0 20px 0;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        button {
+            background-color: #f1c40f;
+            color: #2c3e50;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0px 5px 0px #f39c12;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        button:active {
+            transform: translateY(5px);
+            box-shadow: 0px 0px 0px #f39c12;
         }
     </style>
 </head>
 <body>
 
     <h1>🔍 節奏 X 光掃描機</h1>
-    <p class="instruction">安檢員請注意！輸送帶上有 4 個節奏箱子，其中有 <strong>1 個</strong> 搗蛋鬼長得跟別人不一樣，請把它找出來並點擊它！</p>
+    <p class="instruction">安檢員請注意！輸送帶上有 4 個節奏箱子，其中有 <strong>1 個</strong> 搗蛋鬼長得跟別人不一樣，請把它找出來！</p>
 
-    <div id="conveyor-belt">
+    <div id="progress-board">目前進度：<span id="current-q">1</span> / 10</div>
+
+    <div id="game-container">
+        <div id="conveyor-belt"></div>
+
+        <div id="end-screen">
+            <h2>🌟 太棒了！任務完成 🌟</h2>
+            <p style="font-size: 1.5rem; margin-bottom: 30px;">你成功找出了 10 個搗蛋鬼，擁有超級好眼力！</p>
+            <button onclick="startGame()">再玩一次</button>
         </div>
+    </div>
 
     <div id="message"></div>
-    <div id="score-board">過關數：<span id="score">0</span></div>
 
     <script>
-        // 題庫設計：correct 是正常的頻現句，wrong 是用來混淆的搗蛋鬼
         const levels = [
             { correct: "♩ ♫ ♩ 𝄽", wrong: "♩ ♩ ♩ 𝄽" },
             { correct: "♫ ♫ ♩ ♩", wrong: "♫ ♩ ♩ ♩" },
             { correct: "♩ 𝄽 ♩ 𝄽", wrong: "♩ 𝄽 ♫ 𝄽" },
             { correct: "♩ ♫ ♫ ♩", wrong: "♩ ♫ ♩ ♩" },
-            { correct: "♫ 𝄽 ♫ 𝄽", wrong: "♫ 𝄽 ♩ 𝄽" }
+            { correct: "♫ 𝄽 ♫ 𝄽", wrong: "♫ 𝄽 ♩ 𝄽" },
+            { correct: "♩ ♩ ♫ ♫", wrong: "♩ 𝄽 ♫ ♫" },
+            { correct: "♫ ♩ ♫ ♩", wrong: "♫ ♩ ♩ ♩" }
         ];
 
-        let currentScore = 0;
-        let isClickable = true; // 防止動畫期間重複點擊
+        const MAX_QUESTIONS = 10;
+        let currentQuestion = 1;
+        let isClickable = true;
 
         const belt = document.getElementById('conveyor-belt');
+        const endScreen = document.getElementById('end-screen');
         const messageDisplay = document.getElementById('message');
-        const scoreDisplay = document.getElementById('score');
+        const progressDisplay = document.getElementById('current-q');
 
-        // 初始化遊戲回合
+        // 開始新的一局（重置所有進度）
+        function startGame() {
+            currentQuestion = 1;
+            progressDisplay.textContent = currentQuestion;
+            endScreen.style.display = "none";
+            belt.style.display = "flex";
+            messageDisplay.textContent = "";
+            initRound();
+        }
+
+        // 初始化單一題目回合
         function initRound() {
             isClickable = true;
             messageDisplay.textContent = "";
-            belt.innerHTML = ""; // 清空輸送帶
+            belt.innerHTML = ""; 
 
-            // 隨機選一題
             const randomLevelIndex = Math.floor(Math.random() * levels.length);
             const levelData = levels[randomLevelIndex];
-
-            // 決定搗蛋鬼要放在哪一個位置 (0 到 3 之間)
             const imposterIndex = Math.floor(Math.random() * 4);
 
-            // 產生 4 個箱子
             for (let i = 0; i < 4; i++) {
                 const box = document.createElement('div');
                 box.classList.add('note-box');
                 
-                // 如果是搗蛋鬼的位置，就放入錯誤的節奏；否則放入正確的頻現句
                 if (i === imposterIndex) {
                     box.textContent = levelData.wrong;
                     box.dataset.isImposter = "true";
@@ -183,7 +251,6 @@
                     box.dataset.isImposter = "false";
                 }
 
-                // 加入點擊事件
                 box.addEventListener('click', function() {
                     handleBoxClick(this);
                 });
@@ -192,34 +259,38 @@
             }
         }
 
-        // 處理玩家點擊箱子
+        // 處理點擊
         function handleBoxClick(boxElement) {
-            if (!isClickable) return; // 如果正在播放動畫，不允許點擊
+            if (!isClickable) return;
 
             const isImposter = boxElement.dataset.isImposter === "true";
 
             if (isImposter) {
-                // 答對了！抓到搗蛋鬼
+                // 答對了
                 isClickable = false;
                 boxElement.classList.add('correct');
                 messageDisplay.style.color = "#2ecc71";
-                messageDisplay.textContent = "🎉 答對了！你抓到搗蛋鬼了！";
-                currentScore++;
-                scoreDisplay.textContent = currentScore;
+                messageDisplay.textContent = "🎉 答對了！";
 
-                // 停頓 1.5 秒後進入下一關
                 setTimeout(() => {
-                    initRound();
-                }, 1500);
+                    if (currentQuestion >= MAX_QUESTIONS) {
+                        // 滿 10 題，顯示過關畫面
+                        showEndScreen();
+                    } else {
+                        // 進入下一題
+                        currentQuestion++;
+                        progressDisplay.textContent = currentQuestion;
+                        initRound();
+                    }
+                }, 1200); // 1.2秒後換題
 
             } else {
-                // 答錯了！
+                // 答錯了
                 isClickable = false;
                 boxElement.classList.add('shake');
                 messageDisplay.style.color = "#e74c3c";
                 messageDisplay.textContent = "❌ 哎呀，這箱是正常的！再找找看！";
 
-                // 移除震動動畫並允許重新點擊
                 setTimeout(() => {
                     boxElement.classList.remove('shake');
                     isClickable = true;
@@ -228,8 +299,15 @@
             }
         }
 
-        // 遊戲開始
-        initRound();
+        // 顯示結算畫面
+        function showEndScreen() {
+            belt.style.display = "none";
+            messageDisplay.textContent = "";
+            endScreen.style.display = "block";
+        }
+
+        // 網頁載入時立刻開始遊戲
+        startGame();
 
     </script>
 </body>
